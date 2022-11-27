@@ -5,8 +5,6 @@ const echo = require("./../../dist");
 const inquirer = require("inquirer");
 const crypto = require("crypto");
 
-import ErrnoException = NodeJS.ErrnoException;
-
 /**
  * Laravel Echo Server CLI
  */
@@ -24,9 +22,9 @@ export class Cli {
     defaultOptions: any;
 
     /**
-     * Allowed environment variables.
+     * Allowed environment letiables.
      */
-    envVariables: any = {
+    envletiables: any = {
         LARAVEL_ECHO_SERVER_AUTH_HOST: "authHost",
         LARAVEL_ECHO_SERVER_DEBUG: "devMode",
         LARAVEL_ECHO_SERVER_HOST: "host",
@@ -100,25 +98,25 @@ export class Cli {
     }
 
     /**
-     * Inject the .env vars into options if they exist.
+     * Inject the .env lets into options if they exist.
      */
     resolveEnvFileOptions(options: any): any {
         require("dotenv").config();
 
-        for (let key in this.envVariables) {
+        for (let key in this.envletiables) {
             let value = (process.env[key] || "").toString();
-            let replacementVar;
+            let replacementlet;
 
             if (value) {
-                const path = this.envVariables[key].split(".");
+                const path = this.envletiables[key].split(".");
                 let modifier = options;
 
                 while (path.length > 1) {
                     modifier = modifier[path.shift()];
                 }
 
-                if ((replacementVar = value.match(/\${(.*?)}/))) {
-                    value = (process.env[replacementVar[1]] || "").toString();
+                if ((replacementlet = value.match(/\${(.*?)}/))) {
+                    value = (process.env[replacementlet[1]] || "").toString();
                 }
 
                 modifier[path.shift()] = value;

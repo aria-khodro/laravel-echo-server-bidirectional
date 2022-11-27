@@ -1,10 +1,10 @@
-var fs = require('fs');
-var http = require('http');
-var https = require('https');
-var express = require('express');
-var url = require('url');
-var io = require('socket.io');
-import { Log } from './log';
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const express = require('express');
+const url = require('url');
+const io = require('socket.io');
+import {Log} from './log';
 
 export class Server {
     /**
@@ -24,7 +24,8 @@ export class Server {
     /**
      * Create a new server instance.
      */
-    constructor(private options) { }
+    constructor(private options) {
+    }
 
     /**
      * Start the Socket.io server.
@@ -48,7 +49,7 @@ export class Server {
      * @return {number}
      */
     getPort() {
-        let portRegex = /([0-9]{2,5})[\/]?$/;
+        let portRegex = /([0-9]{2,5})\/?$/;
         let portToUse = String(this.options.port).match(portRegex); // index 1 contains the cleaned port number only
         return Number(portToUse[1]);
     }
@@ -100,16 +101,18 @@ export class Server {
     httpServer(secure: boolean) {
         this.express = express();
         this.express.use((req, res, next) => {
-            for (var header in this.options.headers) {
+            for (let header in this.options.headers) {
                 res.setHeader(header, this.options.headers[header]);
             }
             next();
         });
 
+        let httpServer = null;
+
         if (secure) {
-            var httpServer = https.createServer(this.options, this.express);
+            httpServer = https.createServer(this.options, this.express);
         } else {
-            var httpServer = http.createServer(this.express);
+            httpServer = http.createServer(this.express);
         }
 
         httpServer.listen(this.getPort(), this.options.host);
@@ -197,7 +200,7 @@ export class Server {
      */
     unauthorizedResponse(req: any, res: any): boolean {
         res.statusCode = 403;
-        res.json({ error: 'Unauthorized' });
+        res.json({error: 'Unauthorized'});
 
         return false;
     }

@@ -1,6 +1,6 @@
-import { Database } from './../database';
-import { Log } from './../log';
-var _ = require("lodash");
+import { Database } from '../database';
+import { Log } from '../log';
+let _ = require("lodash");
 
 export class PresenceChannel {
     /**
@@ -26,7 +26,7 @@ export class PresenceChannel {
      * Check if a user is on a presence channel.
      */
     isMember(channel: string, member: any): Promise<boolean> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.getMembers(channel).then(
                 (members) => {
                     this.removeInactive(channel, members, member).then(
@@ -52,7 +52,7 @@ export class PresenceChannel {
      * Remove inactive channel members from the presence channel.
      */
     removeInactive(channel: string, members: any[], member: any): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.io
                 .of("/")
                 .in(channel)

@@ -1,6 +1,6 @@
 import { PresenceChannel } from './presence-channel';
 import { PrivateChannel } from './private-channel';
-import { Log } from './../log';
+import { Log } from '../log';
 
 export class Channel {
     /**
@@ -56,7 +56,7 @@ export class Channel {
         try {
             data = JSON.parse(data);
         } catch (e) {
-            data = data;
+
         }
 
         if (data.event && data.channel) {
@@ -109,7 +109,7 @@ export class Channel {
             socket.join(data.channel);
 
             if (this.isPresence(data.channel)) {
-                var member = res.channel_data;
+                let member = res.channel_data;
                 try {
                     member = JSON.parse(res.channel_data);
                 } catch (e) { }

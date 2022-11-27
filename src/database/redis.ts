@@ -1,5 +1,5 @@
 import { DatabaseDriver } from './database-driver';
-var Redis = require('ioredis');
+let Redis = require('ioredis');
 
 export class RedisDatabase implements DatabaseDriver {
     /**
@@ -18,7 +18,7 @@ export class RedisDatabase implements DatabaseDriver {
      * Retrieve data from redis.
      */
     get(key: string): Promise<any> {
-        return new Promise<any>((resolve, reject) => {
+        return new Promise<any>((resolve) => {
             this._redis.get(key).then(value => resolve(JSON.parse(value)));
         });
     }

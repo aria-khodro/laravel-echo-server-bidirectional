@@ -1,4 +1,4 @@
-import { Log } from './../log';
+import { Log } from '../log';
 let url = require('url');
 import * as _ from 'lodash';
 

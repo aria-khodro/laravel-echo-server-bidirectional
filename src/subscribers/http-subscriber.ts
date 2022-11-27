@@ -1,12 +1,12 @@
-import { Log } from './../log';
+import { Log } from '../log';
 import { Subscriber } from './subscriber';
-var url = require('url');
 
 export class HttpSubscriber implements Subscriber {
     /**
      * Create new instance of http subscriber.
      *
      * @param  {any} express
+     * @param options
      */
     constructor(private express, private options) { }
 
@@ -16,7 +16,7 @@ export class HttpSubscriber implements Subscriber {
      * @return {void}
      */
     subscribe(callback): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             // Broadcast a message to a channel
             this.express.post('/apps/:appId/events', (req, res) => {
                 let body: any = [];
@@ -32,7 +32,7 @@ export class HttpSubscriber implements Subscriber {
 
             Log.success('Listening for http events...');
 
-            resolve();
+            resolve(this);
         });
     }
 
@@ -47,7 +47,7 @@ export class HttpSubscriber implements Subscriber {
                 this.express.post('/apps/:appId/events', (req, res) => {
                     res.status(404).send();
                 });
-                resolve();
+                resolve(this);
             } catch(e) {
                 reject('Could not overwrite the event endpoint -> ' + e);
             }
@@ -68,21 +68,22 @@ export class HttpSubscriber implements Subscriber {
 
         if ((body.channels || body.channel) && body.name && body.data) {
 
-            var data = body.data;
+            let data = body.data;
             try {
                 data = JSON.parse(data);
             } catch (e) { }
 
-            var message = {
+            let message = {
                 event: body.name,
                 data: data,
                 socket: body.socket_id
             }
-            var channels = body.channels || [body.channel];
+            let channels = body.channels || [body.channel];
 
             if (this.options.devMode) {
                 Log.info("Channel: " + channels.join(', '));
                 Log.info("Event: " + message.event);
+                Log.info("Data: " + data);
             }
 
             channels.forEach(channel => broadcast(channel, message));

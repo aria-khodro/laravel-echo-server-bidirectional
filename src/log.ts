@@ -1,4 +1,4 @@
-var colors = require('colors');
+let colors = require('colors');
 
 colors.setTheme({
     silly: 'rainbow',
