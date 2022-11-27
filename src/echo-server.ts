@@ -1,3 +1,4 @@
+const {createClient} = require('ioredis');
 import { HttpSubscriber, RedisSubscriber, Subscriber } from './subscribers';
 import { Channel } from './channels';
 import { Server } from './server';
@@ -112,7 +113,7 @@ export class EchoServer {
             this.httpApi.init();
 
             this.onConnect();
-            this.listen().then(() => resolve(), err => Log.error(err));
+            this.listen().then((e) => resolve(e), err => Log.error(err));
         });
     }
 
@@ -120,7 +121,7 @@ export class EchoServer {
      * Text shown at startup.
      */
     startup(): void {
-        Log.title(`\nL A R A V E L  E C H O  S E R V E R\n`);
+        Log.title(`\nL A R A V E L  E C H O  S E R V E R  B I - D I R E C T I O N A L\n`);
         Log.info(`version ${packageFile.version}\n`);
 
         if (this.options.devMode) {
@@ -157,7 +158,7 @@ export class EchoServer {
                 });
             });
 
-            Promise.all(subscribePromises).then(() => resolve());
+            Promise.all(subscribePromises).then((e) => resolve(e));
         });
     }
 
@@ -208,14 +209,24 @@ export class EchoServer {
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
             this.onClientEvent(socket);
+            this.onPublish(socket);
         });
     }
 
+    onPublish(socket: any):void{
+        socket.onAny(event => {
+            socket.once(event, message => {
+                console.log(message);
+                createClient().publish(message.channel, JSON.stringify(message))
+            })
+        })
+    }
     /**
      * On subscribe to a channel.
      */
     onSubscribe(socket: any): void {
         socket.on('subscribe', data => {
+            createClient().hset('user:list',socket.id, JSON.stringify(socket.id))
             this.channel.join(socket, data);
         });
     }
