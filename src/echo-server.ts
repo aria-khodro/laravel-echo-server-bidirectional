@@ -7,7 +7,7 @@ import { Log } from './log';
 import * as fs from 'fs';
 const packageFile = require('../package.json');
 const { constants } = require('crypto');
-
+const redisClient = createClient()
 /**
  * Echo server class.
  */
@@ -209,24 +209,17 @@ export class EchoServer {
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
             this.onClientEvent(socket);
+            this.onAnyClientEvent(socket);
             this.onPublish(socket);
         });
     }
 
-    onPublish(socket: any):void{
-        socket.onAny(event => {
-            socket.once(event, message => {
-                console.log(message);
-                createClient().publish(message.channel, JSON.stringify(message))
-            })
-        })
-    }
     /**
      * On subscribe to a channel.
      */
     onSubscribe(socket: any): void {
         socket.on('subscribe', data => {
-            createClient().hset('user:list',socket.id, JSON.stringify(socket.id))
+            redisClient.hset('user:list',socket.id, JSON.stringify(socket.id))
             this.channel.join(socket, data);
         });
     }
@@ -236,6 +229,7 @@ export class EchoServer {
      */
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', data => {
+            redisClient.hdel('user:list',socket.id)
             this.channel.leave(socket, data.channel, 'unsubscribed');
         });
     }
@@ -247,6 +241,7 @@ export class EchoServer {
         socket.on('disconnecting', (reason) => {
             Object.keys(socket.rooms).forEach(room => {
                 if (room !== socket.id) {
+                    redisClient.hdel('user:list',socket.id)
                     this.channel.leave(socket, room, reason);
                 }
             });
@@ -260,5 +255,26 @@ export class EchoServer {
         socket.on('client event', data => {
             this.channel.clientEvent(socket, data);
         });
+    }
+
+    /**
+     * On any client events.
+     */
+    onAnyClientEvent(socket: any):void {
+        socket.onAny(event => {
+            socket.once(event, data => {
+                this.channel.clientEvent(socket, data);
+            })
+        })
+    }
+
+    /**
+     * On publish to a channel
+     */
+    onPublish(socket: any):void{
+        socket.on("transport-list", data =>{
+            console.log('transport-list: ',data);
+            redisClient.publish(data?.channel, JSON.stringify(data?.body))
+        })
     }
 }
