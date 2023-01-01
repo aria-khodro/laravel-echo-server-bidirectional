@@ -1,6 +1,6 @@
-import { Log } from '../log';
-let url = require('url');
+import {Log} from '../log';
 import * as _ from 'lodash';
+let url = require('url');
 
 export class HttpApi {
     /**
@@ -11,7 +11,8 @@ export class HttpApi {
      * @param  {any} express
      * @param  {object} options object
      */
-    constructor(private io, private channel, private express, private options) { }
+    constructor(private io, private channel, private express, private options) {
+    }
 
     /**
      * Initialize the API.
@@ -94,7 +95,7 @@ export class HttpApi {
         let rooms = this.io.sockets.adapter.rooms;
         let channels = {};
 
-        Object.keys(rooms).forEach(function(channelName) {
+        Object.keys(rooms).forEach(function (channelName) {
             if (rooms[channelName].sockets[channelName]) {
                 return;
             }
@@ -109,7 +110,7 @@ export class HttpApi {
             };
         });
 
-        res.json({ channels: channels });
+        res.json({channels: channels});
     }
 
     /**
@@ -161,10 +162,10 @@ export class HttpApi {
             let users = [];
 
             _.uniqBy(members, 'user_id').forEach((member: any) => {
-                users.push({ id: member.user_id, user_info: member.user_info });
+                users.push({id: member.user_id, user_info: member.user_info});
             });
 
-            res.json({ users: users });
+            res.json({users: users});
         }, error => Log.error(error));
     }
 
@@ -178,7 +179,7 @@ export class HttpApi {
      */
     badResponse(req: any, res: any, message: string): boolean {
         res.statusCode = 400;
-        res.json({ error: message });
+        res.json({error: message});
 
         return false;
     }
