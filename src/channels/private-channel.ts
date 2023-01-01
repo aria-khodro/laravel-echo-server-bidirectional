@@ -1,7 +1,6 @@
 let request = require('request');
 let url = require('url');
-import { Channel } from './channel';
-import { Log } from './../log';
+import {Log} from '../log';
 
 export class PrivateChannel {
     /**
@@ -22,7 +21,7 @@ export class PrivateChannel {
     authenticate(socket: any, data: any): Promise<any> {
         let options = {
             url: this.authHost(socket) + this.options.authEndpoint,
-            form: { channel_name: data.channel },
+            form: {channel_name: data.channel},
             headers: (data.auth && data.auth.headers) ? data.auth.headers : {},
             rejectUnauthorized: false
         };
@@ -57,11 +56,12 @@ export class PrivateChannel {
                     authHostSelected = `${referer.protocol}//${referer.host}`;
                     break;
                 }
-            };
+            }
+
         }
 
         if (this.options.devMode) {
-            Log.error(`[${new Date().toISOString()}] - Preparing authentication request to: ${authHostSelected}`);
+            Log.warning(`[${new Date().toISOString()}] - Preparing authentication request to: ${authHostSelected}`);
         }
 
         return authHostSelected;
@@ -91,14 +91,17 @@ export class PrivateChannel {
                         Log.error(error);
                     }
 
-                    reject({ reason: 'Error sending authentication request.', status: 0 });
+                    reject({reason: 'Error sending authentication request.', status: 0});
                 } else if (response.statusCode !== 200) {
                     if (this.options.devMode) {
                         Log.warning(`[${new Date().toISOString()}] - ${socket.id} could not be authenticated to ${options.form.channel_name}`);
                         Log.error(response.body);
                     }
 
-                    reject({ reason: 'Client can not be authenticated, got HTTP status ' + response.statusCode, status: response.statusCode });
+                    reject({
+                        reason: 'Client can not be authenticated, got HTTP status ' + response.statusCode,
+                        status: response.statusCode
+                    });
                 } else {
                     if (this.options.devMode) {
                         Log.info(`[${new Date().toISOString()}] - ${socket.id} authenticated for: ${options.form.channel_name}`);
