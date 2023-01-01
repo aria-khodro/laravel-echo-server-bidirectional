@@ -1,6 +1,6 @@
-import { PresenceChannel } from './presence-channel';
-import { PrivateChannel } from './private-channel';
-import { Log } from '../log';
+import {PresenceChannel} from './presence-channel';
+import {PrivateChannel} from './private-channel';
+import {Log} from '../log';
 
 export class Channel {
     /**
@@ -62,7 +62,8 @@ export class Channel {
         if (data.event && data.channel) {
             if (this.isClientEvent(data.event) &&
                 this.isPrivate(data.channel) &&
-                this.isInChannel(socket, data.channel)) {
+                this.isInChannel(socket, data.channel)
+            ) {
                 this.io.sockets.connected[socket.id]
                     .broadcast.to(data.channel)
                     .emit(data.event, data.channel, data.data);
@@ -107,12 +108,14 @@ export class Channel {
     joinPrivate(socket: any, data: any): void {
         this.private.authenticate(socket, data).then(res => {
             socket.join(data.channel);
-
+            console.log('joinPrivate channel: ', data.channel)
             if (this.isPresence(data.channel)) {
                 let member = res.channel_data;
                 try {
                     member = JSON.parse(res.channel_data);
-                } catch (e) { }
+                } catch (e) {
+                    console.log(e)
+                }
 
                 this.presence.join(socket, data.channel, member);
             }
