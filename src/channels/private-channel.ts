@@ -82,9 +82,8 @@ export class PrivateChannel {
     protected serverRequest(socket: any, options: any): Promise<any> {
         return new Promise<any>((resolve, reject) => {
             options.headers = this.prepareHeaders(socket, options);
-            let body;
 
-            this.request.post(options, (error, response, body, next) => {
+            this.request.post(options, (error, response, body) => {
                 if (error) {
                     if (this.options.devMode) {
                         Log.error(`[${new Date().toISOString()}] - Error authenticating ${socket.id} for ${options.form.channel_name}`);
@@ -95,7 +94,9 @@ export class PrivateChannel {
                 } else if (response.statusCode !== 200) {
                     if (this.options.devMode) {
                         Log.warning(`[${new Date().toISOString()}] - ${socket.id} could not be authenticated to ${options.form.channel_name}`);
-                        Log.error(response.body);
+                        const error = JSON.parse(response.body);
+                        Log.error('message: ' + error.message);
+                        Log.error('exception: ' + error.exception);
                     }
 
                     reject({
