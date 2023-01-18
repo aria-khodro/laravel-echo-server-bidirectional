@@ -38,7 +38,6 @@ export class Firebase {
     constructor(channel: string, message: any) {
         this.channel = channel;
         this.message = message;
-        // this.message = message;
     }
 
     configurator(options: any): void {
@@ -63,11 +62,11 @@ export class Firebase {
         }
         let firebaseResponse;
         switch (this.message?.event) {
-            case 'finding-driver':
+            case 'finding-courier':
                 Object.assign(options, {
                     notification: {
                         title: 'باربر پیدا شد',
-                        body: `${this.message?.data?.driver?.vehicle} ${this.message?.data?.driver?.license_plate}`,
+                        body: `${this.message?.data?.courier?.vehicle} ${this.message?.data?.courier?.license_plate}`,
                     },
                 })
                 this.configurator(options)
@@ -112,7 +111,7 @@ export class Firebase {
         }
         if (typeof firebaseResponse === 'object') {
             if (firebaseResponse.failureCount > 0) {
-                console.error("\x1b[41mfirebase an error occurred!\x1b[0m")
+                console.error(`\x1b[41m${firebaseResponse.responses[0].error}\x1b[0m`)
                 console.error(util.inspect(firebaseResponse, true, null, true))
                 const failedTokens = [];
                 firebaseResponse.responses.forEach((resp, idx) => {
