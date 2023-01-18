@@ -1,8 +1,10 @@
 let sqlite3;
-import { DatabaseDriver } from './database-driver';
+import {DatabaseDriver} from './database-driver';
+
 try {
     sqlite3 = require('sqlite3');
-} catch (e) { }
+} catch (e) {
+}
 
 export class SQLiteDatabase implements DatabaseDriver {
     /**

@@ -1,6 +1,6 @@
 let Redis = require('ioredis');
-import { Log } from '../log';
-import { Subscriber } from './subscriber';
+import {Log} from '../log';
+import {Subscriber} from './subscriber';
 
 export class RedisSubscriber implements Subscriber {
     /**
@@ -75,7 +75,7 @@ export class RedisSubscriber implements Subscriber {
             try {
                 this._redis.disconnect();
                 resolve(this);
-            } catch(e) {
+            } catch (e) {
                 reject('Could not disconnect from redis -> ' + e);
             }
         });

@@ -1,5 +1,6 @@
-import { Database } from '../database';
-import { Log } from '../log';
+import {Database} from '../database';
+import {Log} from '../log';
+
 let _ = require("lodash");
 
 export class PresenceChannel {

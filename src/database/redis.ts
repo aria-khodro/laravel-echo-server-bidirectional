@@ -1,4 +1,5 @@
-import { DatabaseDriver } from './database-driver';
+import {DatabaseDriver} from './database-driver';
+
 let Redis = require('ioredis');
 
 export class RedisDatabase implements DatabaseDriver {

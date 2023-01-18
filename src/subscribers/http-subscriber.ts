@@ -1,5 +1,5 @@
-import { Log } from '../log';
-import { Subscriber } from './subscriber';
+import {Log} from '../log';
+import {Subscriber} from './subscriber';
 
 export class HttpSubscriber implements Subscriber {
     /**
@@ -8,7 +8,8 @@ export class HttpSubscriber implements Subscriber {
      * @param  {any} express
      * @param options
      */
-    constructor(private express, private options) { }
+    constructor(private express, private options) {
+    }
 
     /**
      * Subscribe to events to broadcast.
@@ -48,7 +49,7 @@ export class HttpSubscriber implements Subscriber {
                     res.status(404).send();
                 });
                 resolve(this);
-            } catch(e) {
+            } catch (e) {
                 reject('Could not overwrite the event endpoint -> ' + e);
             }
         });
@@ -71,7 +72,8 @@ export class HttpSubscriber implements Subscriber {
             let data = body.data;
             try {
                 data = JSON.parse(data);
-            } catch (e) { }
+            } catch (e) {
+            }
 
             let message = {
                 event: body.name,
@@ -95,7 +97,7 @@ export class HttpSubscriber implements Subscriber {
             );
         }
 
-        res.json({ message: 'ok' })
+        res.json({message: 'ok'})
     }
 
     /**
@@ -108,7 +110,7 @@ export class HttpSubscriber implements Subscriber {
      */
     badResponse(req: any, res: any, message: string): boolean {
         res.statusCode = 400;
-        res.json({ error: message });
+        res.json({error: message});
 
         return false;
     }

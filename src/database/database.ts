@@ -1,7 +1,7 @@
-import { DatabaseDriver } from './database-driver';
-import { SQLiteDatabase } from './sqlite';
-import { RedisDatabase } from './redis';
-import { Log } from './../log';
+import {DatabaseDriver} from './database-driver';
+import {SQLiteDatabase} from './sqlite';
+import {RedisDatabase} from './redis';
+import {Log} from '../log';
 
 /**
  * Class that controls the key/value data store.

@@ -1,5 +1,6 @@
 import {Log} from '../log';
 import * as _ from 'lodash';
+
 let url = require('url');
 
 export class HttpApi {
