@@ -7,6 +7,8 @@ import {Log} from './log';
 import axios from 'axios'
 import {Firebase} from './firebase'
 
+const util = require('util');
+
 const packageFile = require('../package.json');
 const {constants} = require('crypto');
 const redisClient = createClient()
@@ -228,7 +230,6 @@ export class EchoServer {
         }).on('connection', socket => {
             if (this.options.devMode) {
                 console.log(`user connected: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
-                console.log(this.options.authHost + this.options.authEndpoint)
             }
             redisClient.hset('users', socket.user.id, JSON.stringify(socket.user))
             redisClient.hset('sockets', socket.user.id, socket.id)
@@ -240,6 +241,7 @@ export class EchoServer {
             this.onPublish(socket);
             this.onHandleCoords(socket);
             this.onHandleTransportStatus(socket);
+            // this.onHandleTicketList(socket);
 
         });
     }
@@ -249,7 +251,7 @@ export class EchoServer {
      */
     onSubscribe(socket: any): void {
         socket.on('subscribe', data => {
-            console.log('subscribe: ', data)
+            console.log('subscribe: ', data.channel)
             this.channel.join(socket, data);
         });
     }
@@ -259,7 +261,7 @@ export class EchoServer {
      */
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', data => {
-            console.log('unsubscribe: ', data)
+            console.log(`user unsubscribed: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
             redisClient.hdel('users', socket.user.id)
             redisClient.hdel('sockets', socket.user.id)
             this.channel.leave(socket, data.channel, 'unsubscribed');
@@ -316,14 +318,23 @@ export class EchoServer {
 
     onHandleCoords(socket: any): void {
         socket.on("transport-coords", data => {
-            socket.to(data?.channel).emit('transport-coords.' + data?.body?.transport_id, data?.body)
-            redisClient.rpush('coords:' + data?.body?.transport_id, JSON.stringify(data?.body.coords))
+            console.log(util.inspect(data, true, null, true))
+            socket.to(data?.channel).emit('transport-coords', data?.body?.data)
+            redisClient.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
         })
     }
 
     onHandleTransportStatus(socket: any): void {
         socket.on("transport-status", data => {
             if (data?.body?.data?.status === 'finished') {
+                redisClient.publish(data?.channel, JSON.stringify(data?.body))
+            }
+        })
+    }
+
+    onHandleTicketList(socket: any): void {
+        socket.on("ticket-list", data => {
+            if (data?.body?.data?.command === 'getAll') {
                 redisClient.publish(data?.channel, JSON.stringify(data?.body))
             }
         })
