@@ -23,6 +23,7 @@ export class EchoServer {
     public defaultOptions: any = {
         authHost: 'http://localhost',
         authEndpoint: '/broadcasting/auth',
+        userEndpoint: '/api/user/me',
         clients: [],
         database: 'redis',
         databaseConfig: {
@@ -215,7 +216,7 @@ export class EchoServer {
             const bearer = socket?.handshake?.auth?.headers?.Authorization
             if (!!bearer) {
                 try {
-                    socket.user = (await axios.get("http://aria-khodro.local/api/user/me", {
+                    socket.user = (await axios.get(this.options.authHost + this.options.userEndpoint, {
                         headers: {
                             Authorization: bearer
                         }
