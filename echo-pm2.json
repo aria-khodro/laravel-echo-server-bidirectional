@@ -1,0 +1,7 @@
+{
+  "name": "echo",
+  "script": "bin/server.js",
+  "args": "start",
+  "instances": 1,
+  "watch": true
+}
