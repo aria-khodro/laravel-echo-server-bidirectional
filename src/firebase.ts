@@ -1,12 +1,17 @@
 const _ = require("lodash");
 const redisClient = require('ioredis').createClient();
-const admin = require("firebase-admin");
+const user = require("firebase-admin");
+const courier = require("firebase-admin");
 const util = require('util');
 require('dotenv').config();
 
-admin.initializeApp({
-    credential: admin.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-});
+user.initializeApp({
+    credential: user.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS_USER)
+},'com.aria');
+
+courier.initializeApp({
+    credential: courier.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS_CORIER)
+},'com.ariacorporate');
 
 export class Firebase {
     public channel: string = null;
@@ -70,7 +75,7 @@ export class Firebase {
                     },
                 })
                 this.configurator(options)
-                firebaseResponse = await admin.messaging().sendMulticast(this.options);
+                firebaseResponse = await user.messaging().sendMulticast(this.options);
                 break
             case 'transport-status':
                 switch (this.message?.data?.status) {
@@ -82,7 +87,7 @@ export class Firebase {
                             },
                         })
                         this.configurator(options)
-                        firebaseResponse = await admin.messaging().sendMulticast(this.options);
+                        firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                     case 'خاتمه یافته':
                         Object.assign(options, {
@@ -92,7 +97,7 @@ export class Firebase {
                             },
                         })
                         this.configurator(options)
-                        firebaseResponse = await admin.messaging().sendMulticast(this.options);
+                        firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                     case 'مردود':
                         Object.assign(options, {
@@ -102,10 +107,11 @@ export class Firebase {
                             },
                         })
                         this.configurator(options)
-                        firebaseResponse = await admin.messaging().sendMulticast(this.options);
+                        firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                 }
                 break;
+            case 'transport-incoming':
             default:
                 break;
         }
