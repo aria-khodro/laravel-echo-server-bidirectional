@@ -33,11 +33,20 @@ export class Server {
      * @return {void}
      */
     init(): Promise<any> {
+        process.on("unhandledRejection",(err:Error)=>{
+            console.error("\n===== unhandledRejection =====\n")
+            console.log(err);
+        });
+
+        process.on("uncaughtException",(err:Error)=>{
+            console.error("\n===== uncaughtException =====\n")
+            console.log(err);
+        });
+
         return new Promise((resolve, reject) => {
             this.serverProtocol().then(() => {
                 let host = this.options.host || 'localhost';
                 Log.success(`Running at ${host} on port ${this.getPort()}`);
-
                 resolve(this.io);
             }, error => reject(error));
         });
