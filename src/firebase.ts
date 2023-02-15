@@ -1,23 +1,31 @@
 const _ = require("lodash");
 const redisClient = require('ioredis').createClient();
-const user = require("firebase-admin");
-const courier = require("firebase-admin");
+import * as admin from 'firebase-admin';
+
 const util = require('util');
 require('dotenv').config();
 
-user.initializeApp({
-    credential: user.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS_USER)
-},'com.aria');
+const userServiceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS_COM_ARIA);
+const corporateServiceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS_COM_ARIACORPORATE);
 
-courier.initializeApp({
-    credential: courier.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS_CORIER)
-},'com.ariacorporate');
+const user = admin.initializeApp({
+    credential: admin.credential.cert(userServiceAccount)
+}, 'user');
+
+const corporate = admin.initializeApp({
+    credential: admin.credential.cert(corporateServiceAccount)
+}, 'corporate');
+console.log(corporate.name)
+
+
+console.log(user.name)
+
 
 export class Firebase {
     public channel: string = null;
     public message: any;
 
-    public defaultOptions: any = {
+    public defaultUserOptions: any = {
         tokens: [],
         notification: {
             title: '',
@@ -37,6 +45,27 @@ export class Firebase {
             }
         },
     }
+
+    public defaultCourierOptions: any = {
+        tokens: [],
+        notification: {
+            title: '',
+            body: '',
+        },
+        data: {
+            channel: '',
+        },
+        android: {
+            notification: {
+                icon: 'ic_small_icon',
+                color: '#b2eeff',
+                channelId: 'order',
+                tag: '',
+                sound: 'default',
+            }
+        },
+    }
+
     public options: any;
 
 
@@ -45,17 +74,33 @@ export class Firebase {
         this.message = message;
     }
 
-    configurator(options: any): void {
-        this.options = _.merge(this.defaultOptions, options);
+    configurator(options: any, type: string): void {
+        switch (type) {
+            case 'user':
+                this.options = _.merge(this.defaultUserOptions, options);
+                break;
+            case 'courier':
+                this.options = _.merge(this.defaultCourierOptions, options);
+        }
+    }
+
+    async redisScanner(pattern: string): Promise<any> {
+        let cursor = 0;
+        let result = [];
+        do {
+            const data = await redisClient.scan(cursor, 'MATCH', pattern);
+            cursor = data[0];
+            result.push(...data[1])
+        } while (cursor != 0)
+        if (!result.length) return []
+        return redisClient.mget(result);
     }
 
     async dispatch(): Promise<any> {
-        // console.log(this.channel, this.message)
+        console.log(this.channel, this.message)
         let tokens = [];
-        await redisClient.hget('fcm:' + this.message?.data?.clients, 'token').then(e => tokens.push(e))
-        if (!tokens.length) return
         let options = {
-            tokens,
+            tokens: [],
             data: {
                 channel: this.channel,
             },
@@ -68,16 +113,24 @@ export class Firebase {
         let firebaseResponse;
         switch (this.message?.event) {
             case 'finding-courier':
+                tokens = await this.redisScanner('fcm:user:' + this.message.data.clients + '*');
+                if (!tokens.length) return
+                console.log(tokens)
                 Object.assign(options, {
                     notification: {
                         title: 'باربر پیدا شد',
-                        body: `${this.message?.data?.courier?.vehicle} ${this.message?.data?.courier?.license_plate}`,
+                        body: this.message?.data?.courier?.vehicle + ' ' + this.message?.data?.courier?.license_plate,
                     },
+                    tokens
                 })
-                this.configurator(options)
+                this.configurator(options, 'user')
                 firebaseResponse = await user.messaging().sendMulticast(this.options);
                 break
             case 'transport-status':
+                tokens = await this.redisScanner('fcm:user:' + this.message.data.clients + '*');
+                if (!tokens.length) return
+                console.log(tokens)
+                options.tokens = tokens;
                 switch (this.message?.data?.status) {
                     case 'رسیدن به مبدا':
                         Object.assign(options, {
@@ -86,7 +139,7 @@ export class Firebase {
                                 body: 'کاربر گرامی باربر شما در مبدا منتظر است',
                             },
                         })
-                        this.configurator(options)
+                        this.configurator(options, 'user')
                         firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                     case 'خاتمه یافته':
@@ -96,7 +149,7 @@ export class Firebase {
                                 body: 'کاربر گرامی بار شما با موفقیت به مقصد رسید',
                             },
                         })
-                        this.configurator(options)
+                        this.configurator(options, 'user')
                         firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                     case 'مردود':
@@ -106,12 +159,28 @@ export class Firebase {
                                 body: `کاربر گرامی سفارش شما به دلیل ${this.message?.data?.reason} رد شد`,
                             },
                         })
-                        this.configurator(options)
+                        this.configurator(options, 'user')
                         firebaseResponse = await user.messaging().sendMulticast(this.options);
                         break
                 }
                 break;
-            case 'transport-incoming':
+            // case 'transport-incoming':
+            case 'transport-courier-incoming':
+                tokens = await this.redisScanner('fcm:corporate:*');
+                if (!tokens.length) return
+                console.log(tokens)
+                Object.assign(options, {
+                    notification: {
+                        title: 'قاصد عزیز سفر جدید دارید!',
+                        body: `سفر به شماره ${this.message?.data?.transport?.order_no} به مبلغ ${this.message?.data?.transport?.total}`,
+                    },
+                    tokens
+                })
+                this.configurator(options, 'courier')
+                console.log(this.options)
+                firebaseResponse = await corporate.messaging().sendMulticast(this.options);
+
+                break;
             default:
                 break;
         }
