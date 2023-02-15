@@ -161,8 +161,7 @@ export class EchoServer {
         return new Promise((resolve, reject) => {
             let subscribePromises = this.subscribers.map(subscriber => {
                 return subscriber.subscribe((channel, message) => {
-                    const firebase = new Firebase(channel, message);
-                    firebase.dispatch()
+                    new Firebase(channel, message).dispatch();
                     return this.broadcast(channel, message);
                 });
             });
