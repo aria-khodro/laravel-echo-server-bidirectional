@@ -1,7 +1,10 @@
 {
-  "name": "echo",
-  "script": "bin/server.js",
-  "args": "start",
-  "instances": 1,
-  "watch": true
+    "name": "echo",
+    "script": "bin/server.js",
+    "args": "start",
+    "instances": 1,
+    "watch": true,
+    "ignore_watch": [
+        "laravel-echo-server.lock"
+    ]
 }
