@@ -15,11 +15,6 @@ const user = admin.initializeApp({
 const corporate = admin.initializeApp({
     credential: admin.credential.cert(corporateServiceAccount)
 }, 'corporate');
-console.log(corporate.name)
-
-
-console.log(user.name)
-
 
 export class Firebase {
     public channel: string = null;
