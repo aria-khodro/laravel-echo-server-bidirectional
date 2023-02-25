@@ -215,19 +215,28 @@ export class EchoServer {
             const bearer = socket?.handshake?.auth?.headers?.Authorization
             if (!!bearer) {
                 try {
-                    socket.user = (await axios.get(this.options.authHost + this.options.userEndpoint, {
+                    const userData= (await axios.get(this.options.authHost + this.options.userEndpoint, {
                         headers: {
                             Authorization: bearer
                         }
                     })).data
+                    socket.user = userData
                     next();
                 } catch (error) {
-                    next(new Error(error));
+                    console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)
+                    next(new Error("Token is not valid! Unknown user rejected with socket id " + socket.id));
                 }
             } else {
-                next(new Error("Token is not valid! Unknown user"));
+                console.error("Unknown user rejected with socket id " + socket.id)
+                next(new Error("Unknown user rejected with socket id " + socket.id));
             }
         }).on('connection', socket => {
+            socket.on("disconnect", (reason) => {
+                redisClient.hdel('users', socket.id)
+                redisClient.hdel('sockets', socket.id)
+                console.log(`user disconnecting: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id} and reason : ${reason}`)
+
+            });
             if (this.options.devMode) {
                 console.log(`user connected: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
             }
@@ -262,8 +271,6 @@ export class EchoServer {
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', data => {
             console.log(`user unsubscribed: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
-            redisClient.hdel('users', socket.user.id)
-            redisClient.hdel('sockets', socket.user.id)
             this.channel.leave(socket, data.channel, 'unsubscribed');
         });
     }
@@ -275,8 +282,6 @@ export class EchoServer {
         socket.on('disconnecting', reason => {
             if (this.options.devMode)
                 console.log(`user disconnecting: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id} and reason : ${reason}`)
-            redisClient.hdel('users', socket.user.id)
-            redisClient.hdel('sockets', socket.user.id)
             Object.keys(socket.rooms).forEach(room => {
                 if (room !== socket.id) {
                     this.channel.leave(socket, room, reason);
