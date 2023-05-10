@@ -30,7 +30,8 @@ export class EchoServer {
             redis: {},
             sqlite: {
                 databasePath: '/database/laravel-echo-server.sqlite'
-            }
+            },
+            publishPresence: false
         },
         devMode: false,
         host: null,
@@ -161,6 +162,7 @@ export class EchoServer {
         return new Promise((resolve, reject) => {
             let subscribePromises = this.subscribers.map(subscriber => {
                 return subscriber.subscribe((channel, message) => {
+                    console.log(util.inspect(message, true, null, true))
                     new Firebase(channel, message).dispatch();
                     return this.broadcast(channel, message);
                 });
@@ -215,12 +217,13 @@ export class EchoServer {
             const bearer = socket?.handshake?.auth?.headers?.Authorization
             if (!!bearer) {
                 try {
-                    const userData= (await axios.get(this.options.authHost + this.options.userEndpoint, {
+                    socket.user = (await axios.get(this.options.authHost + this.options.userEndpoint, {
                         headers: {
                             Authorization: bearer
                         }
                     })).data
-                    socket.user = userData
+                    if (this.options.devMode)
+                        console.log('user: ', socket.user)
                     next();
                 } catch (error) {
                     console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)

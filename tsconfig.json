@@ -19,11 +19,11 @@
   "exclude": [
     "node_modules"
   ],
-  "compileOnSave": false,
-  "buildOnSave": false,
+  "compileOnSave": true,
+  "buildOnSave": true,
   "atom": {
-    "formatOnSave": false,
-    "rewriteTsconfig": false
+    "formatOnSave": true,
+    "rewriteTsconfig": true
   },
   "typeRoots": [
     "../node_modules/@types"

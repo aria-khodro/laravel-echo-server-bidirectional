@@ -48,6 +48,7 @@ export class Firebase {
             body: '',
         },
         data: {
+            screen: 'HomeScreen',
             channel: '',
         },
         android: {
@@ -92,7 +93,6 @@ export class Firebase {
     }
 
     async dispatch(): Promise<any> {
-        console.log(this.channel, this.message)
         let tokens = [];
         let options = {
             tokens: [],
@@ -166,8 +166,8 @@ export class Firebase {
                 console.log(tokens)
                 Object.assign(options, {
                     notification: {
-                        title: 'قاصد عزیز سفر جدید دارید!',
-                        body: `سفر به شماره ${this.message?.data?.transport?.order_no} به مبلغ ${this.message?.data?.transport?.total}`,
+                        title: 'سفارش جدید!',
+                        body: `سفارش به شماره ${this.message?.data?.transport?.order_no} به مبلغ ${this.message?.data?.transport?.total}`,
                     },
                     tokens
                 })
