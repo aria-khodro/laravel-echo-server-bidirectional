@@ -1,4 +1,3 @@
-const {createClient} = require('ioredis');
 import {HttpSubscriber, RedisSubscriber, Subscriber} from './subscribers';
 import {Channel} from './channels';
 import {Server} from './server';
@@ -6,12 +5,13 @@ import {HttpApi} from './api';
 import {Log} from './log';
 import axios from 'axios'
 import {Firebase} from './firebase'
+import Redis from 'ioredis';
 
+const redisClient = new Redis()
 const util = require('util');
 
 const packageFile = require('../package.json');
 const {constants} = require('crypto');
-const redisClient = createClient()
 
 /**
  * Echo server class.
@@ -90,7 +90,7 @@ export class EchoServer {
      * Start the Echo Server.
      */
     run(options: any): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.options = Object.assign(this.defaultOptions, options);
             this.startup();
             this.server = new Server(this.options);
@@ -108,7 +108,7 @@ export class EchoServer {
      * Initialize the class
      */
     init(io: any): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.channel = new Channel(io, this.options);
 
             this.subscribers = [];
@@ -156,14 +156,18 @@ export class EchoServer {
     }
 
     /**
-     * Listen for incoming event from subscibers.
+     * Listen for incoming event from subscribers.
      */
     listen(): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             let subscribePromises = this.subscribers.map(subscriber => {
                 return subscriber.subscribe((channel, message) => {
-                    console.log(util.inspect(message, true, null, true))
-                    new Firebase(channel, message).dispatch();
+                    if (this.options.devMode)
+                        console.log(util.inspect(message, true, null, true))
+                    new Firebase(channel, message).dispatch().then(r => {
+                        if (this.options.devMode)
+                            console.log(r)
+                    });
                     return this.broadcast(channel, message);
                 });
             });
@@ -217,44 +221,47 @@ export class EchoServer {
             const bearer = socket?.handshake?.auth?.headers?.Authorization
             if (!!bearer) {
                 try {
-                    socket.user = (await axios.get(this.options.authHost + this.options.userEndpoint, {
+                    const response = (await axios.get(this.options.authHost + this.options.userEndpoint, {
                         headers: {
                             Authorization: bearer
                         }
-                    })).data
-                    if (this.options.devMode)
-                        console.log('user: ', socket.user)
+                    }))
+                    if (this.options.devMode) {
+                        console.log(util.inspect(response.data, true, null, true))
+                    }
+                    socket.user = response.data
                     next();
                 } catch (error) {
-                    console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)
-                    next(new Error("Token is not valid! Unknown user rejected with socket id " + socket.id));
+                    if (this.options.devMode) {
+                        console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)
+                        console.error(new Error(error));
+                    }
+                    next(new Error(error));
                 }
             } else {
-                console.error("Unknown user rejected with socket id " + socket.id)
+                if (this.options.devMode)
+                    console.error("Unknown user rejected with socket id " + socket.id)
                 next(new Error("Unknown user rejected with socket id " + socket.id));
             }
         }).on('connection', socket => {
             socket.on("disconnect", (reason) => {
                 redisClient.hdel('users', socket.id)
                 redisClient.hdel('sockets', socket.id)
-                console.log(`user disconnecting: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id} and reason : ${reason}`)
+                if (this.options.devMode)
+                    console.log(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
 
             });
-            if (this.options.devMode) {
-                console.log(`user connected: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
-            }
+            if (this.options.devMode)
+                console.log(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
             redisClient.hset('users', socket.user.id, JSON.stringify(socket.user))
             redisClient.hset('sockets', socket.user.id, socket.id)
             this.onSubscribe(socket);
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
             this.onClientEvent(socket);
-            // this.onAnyClientEvent(socket);
             this.onPublish(socket);
             this.onHandleCoords(socket);
             this.onHandleTransportStatus(socket);
-            // this.onHandleTicketList(socket);
-
         });
     }
 
@@ -263,8 +270,11 @@ export class EchoServer {
      */
     onSubscribe(socket: any): void {
         socket.on('subscribe', data => {
-            console.log('subscribe: ', data.channel)
+            if (this.options.devMode)
+                console.log(socket.user.name + ' subscribing to channel: ', data.channel)
             this.channel.join(socket, data);
+            if (this.options.devMode)
+                console.log(socket.user.name + ' subscribed to channel: ', data.channel)
         });
     }
 
@@ -273,8 +283,9 @@ export class EchoServer {
      */
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', data => {
-            console.log(`user unsubscribed: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id}`)
             this.channel.leave(socket, data.channel, 'unsubscribed');
+            if (this.options.devMode)
+                console.log(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
         });
     }
 
@@ -283,13 +294,13 @@ export class EchoServer {
      */
     onDisconnecting(socket: any): void {
         socket.on('disconnecting', reason => {
-            if (this.options.devMode)
-                console.log(`user disconnecting: ${socket?.user?.user_details?.first_name} ${socket?.user?.user_details?.last_name} with socket id : ${socket.id} and reason : ${reason}`)
             Object.keys(socket.rooms).forEach(room => {
                 if (room !== socket.id) {
                     this.channel.leave(socket, room, reason);
                 }
             });
+            if (this.options.devMode)
+                console.log(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
         });
     }
 
@@ -298,20 +309,10 @@ export class EchoServer {
      */
     onClientEvent(socket: any): void {
         socket.on('client event', data => {
-            console.log('client event: ', data)
+            if (this.options.devMode)
+                console.log('client event: ', data)
             this.channel.clientEvent(socket, data);
         });
-    }
-
-    /**
-     * On any client events.
-     */
-    onAnyClientEvent(socket: any): void {
-        socket.onAny(event => {
-            socket.once(event, data => {
-                this.channel.clientEvent(socket, data);
-            })
-        })
     }
 
     /**
@@ -319,14 +320,16 @@ export class EchoServer {
      */
     onPublish(socket: any): void {
         socket.on("transport-list", data => {
-            console.log('transport-list: ', data);
+            if (this.options.devMode)
+                console.log('transport-list: ', data);
             redisClient.publish(data?.channel, JSON.stringify(data?.body))
         })
     }
 
     onHandleCoords(socket: any): void {
         socket.on("transport-coords", data => {
-            console.log(util.inspect(data, true, null, true))
+            if (this.options.devMode)
+                console.log(util.inspect(data, true, null, true))
             socket.to(data?.channel).emit('transport-coords', data?.body?.data)
             redisClient.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
         })
@@ -335,14 +338,6 @@ export class EchoServer {
     onHandleTransportStatus(socket: any): void {
         socket.on("transport-status", data => {
             if (data?.body?.data?.status === 'finished') {
-                redisClient.publish(data?.channel, JSON.stringify(data?.body))
-            }
-        })
-    }
-
-    onHandleTicketList(socket: any): void {
-        socket.on("ticket-list", data => {
-            if (data?.body?.data?.command === 'getAll') {
                 redisClient.publish(data?.channel, JSON.stringify(data?.body))
             }
         })
