@@ -5,6 +5,9 @@
     "instances": 1,
     "watch": true,
     "ignore_watch": [
-        "laravel-echo-server.lock"
+        "*.*",
+        "src",
+        "node_modules",
+        "examples"
     ]
 }

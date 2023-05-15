@@ -1,31 +1,36 @@
 {
-  "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noImplicitAny": false,
-    "outDir": "./dist",
-    "pretty": true,
-    "preserveConstEnums": true,
-    "removeComments": true,
-    "target": "es6",
-    "lib": ["es2016", "dom"],
-    "types": ["node"]
-  },
-  "files": [
-    "src/index.ts",
-    "src/cli/index.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "compileOnSave": true,
-  "buildOnSave": true,
-  "atom": {
-    "formatOnSave": true,
-    "rewriteTsconfig": true
-  },
-  "typeRoots": [
-    "../node_modules/@types"
-  ]
+    "compileOnSave": true,
+    "buildOnSave": true,
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "noImplicitAny": false,
+        "outDir": "./dist",
+        "pretty": true,
+        "preserveConstEnums": true,
+        "removeComments": true,
+        "target": "es6",
+        "lib": [
+            "es2016",
+            "dom"
+        ],
+        "types": [
+            "node"
+        ]
+    },
+    "files": [
+        "src/index.ts",
+        "src/cli/index.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "atom": {
+        "formatOnSave": true,
+        "rewriteTsconfig": true
+    },
+    "typeRoots": [
+        "../node_modules/@types"
+    ]
 }

@@ -110,7 +110,6 @@ export class Firebase {
             case 'finding-courier':
                 tokens = await this.redisScanner('fcm:user:' + this.message.data.clients + '*');
                 if (!tokens.length) return
-                console.log(tokens)
                 Object.assign(options, {
                     notification: {
                         title: 'باربر پیدا شد',
@@ -124,7 +123,6 @@ export class Firebase {
             case 'transport-status':
                 tokens = await this.redisScanner('fcm:user:' + this.message.data.clients + '*');
                 if (!tokens.length) return
-                console.log(tokens)
                 options.tokens = tokens;
                 switch (this.message?.data?.status) {
                     case 'رسیدن به مبدا':
@@ -163,7 +161,6 @@ export class Firebase {
             case 'transport-courier-incoming':
                 tokens = await this.redisScanner('fcm:corporate:*');
                 if (!tokens.length) return
-                console.log(tokens)
                 Object.assign(options, {
                     notification: {
                         title: 'سفارش جدید!',
@@ -172,7 +169,6 @@ export class Firebase {
                     tokens
                 })
                 this.configurator(options, 'courier')
-                console.log(this.options)
                 firebaseResponse = await corporate.messaging().sendMulticast(this.options);
 
                 break;

@@ -1,6 +1,8 @@
-let Redis = require('ioredis');
 import {Log} from '../log';
 import {Subscriber} from './subscriber';
+import getCurrentLine from "get-current-line";
+
+let Redis = require('ioredis');
 
 export class RedisSubscriber implements Subscriber {
     /**
@@ -38,13 +40,12 @@ export class RedisSubscriber implements Subscriber {
             this._redis.on('pmessage', (subscribed, channel, message) => {
                 try {
                     message = JSON.parse(message);
-
                     if (this.options.devMode) {
+                        console.log(getCurrentLine())
                         Log.info("Channel: " + channel);
-                        Log.info("Event: " + message.event);
-                        // Log.info("Data: " + JSON.stringify(message, null, 4));
+                        Log.info("Event: " + message?.event ?? 'No Event Present');
+                        Log.info("Data: " + JSON.stringify(message?.data, null, 4) ?? 'No Data Present');
                     }
-
                     callback(channel.substring(this._keyPrefix.length), message);
                 } catch (e) {
                     if (this.options.devMode) {

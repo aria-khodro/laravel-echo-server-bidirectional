@@ -6,6 +6,7 @@ import {Log} from './log';
 import axios from 'axios'
 import {Firebase} from './firebase'
 import Redis from 'ioredis';
+import getCurrentLine from 'get-current-line'
 
 const redisClient = new Redis()
 const util = require('util');
@@ -162,12 +163,7 @@ export class EchoServer {
         return new Promise((resolve) => {
             let subscribePromises = this.subscribers.map(subscriber => {
                 return subscriber.subscribe((channel, message) => {
-                    if (this.options.devMode)
-                        console.log(util.inspect(message, true, null, true))
-                    new Firebase(channel, message).dispatch().then(r => {
-                        if (this.options.devMode)
-                            console.log(r)
-                    });
+                    new Firebase(channel, message).dispatch();
                     return this.broadcast(channel, message);
                 });
             });
@@ -218,23 +214,32 @@ export class EchoServer {
      */
     onConnect(): void {
         this.server.io.use(async (socket: any, next: any): Promise<void> => {
-            const bearer = socket?.handshake?.auth?.headers?.Authorization
+            const bearer = socket?.handshake?.auth?.headers?.Authorization ?? socket?.handshake?.headers.authorization
             if (!!bearer) {
                 try {
-                    const response = (await axios.get(this.options.authHost + this.options.userEndpoint, {
+                    await axios({
+                        method: 'get',
+                        url: this.options.authHost + this.options.userEndpoint,
                         headers: {
                             Authorization: bearer
                         }
-                    }))
-                    if (this.options.devMode) {
-                        console.log(util.inspect(response.data, true, null, true))
-                    }
-                    socket.user = response.data
+                    }).then(r => {
+                        if (this.options.devMode) {
+                            console.log(getCurrentLine())
+                            console.log(r.data)
+                            socket.user = r.data
+                        }
+                    }).catch(e => {
+                        if (this.options.devMode) {
+                            console.log(getCurrentLine())
+                            console.error(e.message)
+                        }
+                    })
                     next();
                 } catch (error) {
                     if (this.options.devMode) {
                         console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)
-                        console.error(new Error(error));
+                        console.error(error);
                     }
                     next(new Error(error));
                 }
