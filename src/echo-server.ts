@@ -8,7 +8,6 @@ import {Firebase} from './firebase'
 import Redis from 'ioredis';
 import getCurrentLine from 'get-current-line'
 
-const redisClient = new Redis()
 const util = require('util');
 
 const packageFile = require('../package.json');
@@ -82,9 +81,17 @@ export class EchoServer {
     private httpApi: HttpApi;
 
     /**
+     * Redis pub/sub client.
+     *
+     * @type {object}
+     */
+    private _redis: any;
+
+    /**
      * Create a new instance.
      */
     constructor() {
+        this._redis = new Redis(this.options.databaseConfig.redis);
     }
 
     /**
@@ -250,16 +257,16 @@ export class EchoServer {
             }
         }).on('connection', socket => {
             socket.on("disconnect", (reason) => {
-                redisClient.hdel('users', socket.id)
-                redisClient.hdel('sockets', socket.id)
+                this._redis.hdel('users', socket.id)
+                this._redis.hdel('sockets', socket.id)
                 if (this.options.devMode)
                     console.log(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
 
             });
             if (this.options.devMode)
                 console.log(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
-            redisClient.hset('users', socket.user.id, JSON.stringify(socket.user))
-            redisClient.hset('sockets', socket.user.id, socket.id)
+            this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
+            this._redis.hset('sockets', socket.user.id, socket.id)
             this.onSubscribe(socket);
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
@@ -327,7 +334,7 @@ export class EchoServer {
         socket.on("transport-list", data => {
             if (this.options.devMode)
                 console.log('transport-list: ', data);
-            redisClient.publish(data?.channel, JSON.stringify(data?.body))
+            this._redis.publish(data?.channel, JSON.stringify(data?.body))
         })
     }
 
@@ -336,14 +343,14 @@ export class EchoServer {
             if (this.options.devMode)
                 console.log(util.inspect(data, true, null, true))
             socket.to(data?.channel).emit('transport-coords', data?.body?.data)
-            redisClient.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
+            this._redis.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
         })
     }
 
     onHandleTransportStatus(socket: any): void {
         socket.on("transport-status", data => {
             if (data?.body?.data?.status === 'finished') {
-                redisClient.publish(data?.channel, JSON.stringify(data?.body))
+                this._redis.publish(data?.channel, JSON.stringify(data?.body))
             }
         })
     }
