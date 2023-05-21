@@ -91,7 +91,6 @@ export class EchoServer {
      * Create a new instance.
      */
     constructor() {
-        this._redis = new Redis(this.options.databaseConfig.redis);
     }
 
     /**
@@ -100,9 +99,9 @@ export class EchoServer {
     run(options: any): Promise<any> {
         return new Promise((resolve) => {
             this.options = Object.assign(this.defaultOptions, options);
+            this._redis = new Redis(this.options.databaseConfig.redis);
             this.startup();
             this.server = new Server(this.options);
-
             this.server.init().then(io => {
                 this.init(io).then(() => {
                     Log.info('\nServer ready!\n');
