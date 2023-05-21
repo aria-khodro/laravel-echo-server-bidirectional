@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const redisClient = require('ioredis').createClient();
+import Redis from "ioredis";
 import * as admin from 'firebase-admin';
 
 const util = require('util');
@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const userServiceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS_COM_ARIA);
 const corporateServiceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS_COM_ARIACORPORATE);
+
 
 const user = admin.initializeApp({
     credential: admin.credential.cert(userServiceAccount)
@@ -17,6 +18,17 @@ const corporate = admin.initializeApp({
 }, 'corporate');
 
 export class Firebase {
+    /**
+     * Redis client.
+     */
+    private _redis: any;
+
+    constructor(channel: string, message: any, options: any) {
+        this._redis = new Redis(options.databaseConfig.redis);
+        this.channel = channel;
+        this.message = message;
+    }
+
     public channel: string = null;
     public message: any;
 
@@ -64,12 +76,6 @@ export class Firebase {
 
     public options: any;
 
-
-    constructor(channel: string, message: any) {
-        this.channel = channel;
-        this.message = message;
-    }
-
     configurator(options: any, type: string): void {
         switch (type) {
             case 'user':
@@ -84,12 +90,12 @@ export class Firebase {
         let cursor = 0;
         let result = [];
         do {
-            const data = await redisClient.scan(cursor, 'MATCH', pattern);
+            const data = await this._redis.scan(cursor, 'MATCH', pattern);
             cursor = data[0];
             result.push(...data[1])
         } while (cursor != 0)
         if (!result.length) return []
-        return redisClient.mget(result);
+        return this._redis.mget(result);
     }
 
     async dispatch(): Promise<any> {

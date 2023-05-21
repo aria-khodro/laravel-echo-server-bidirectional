@@ -1,8 +1,7 @@
 import {Log} from '../log';
 import {Subscriber} from './subscriber';
 import getCurrentLine from "get-current-line";
-
-let Redis = require('ioredis');
+import Redis from "ioredis";
 
 export class RedisSubscriber implements Subscriber {
     /**
