@@ -244,26 +244,25 @@ export class EchoServer {
                     next();
                 } catch (error) {
                     if (this.options.devMode) {
-                        console.error("Token is not valid! Unknown user rejected with socket id " + socket.id)
+                        console.error(`[${new Date().toLocaleString()}] Token is not valid! Unknown user rejected with socket id ` + socket.id)
                         console.error(error);
                     }
                     next(new Error(error));
                 }
             } else {
                 if (this.options.devMode)
-                    console.error("Unknown user rejected with socket id " + socket.id)
-                next(new Error("Unknown user rejected with socket id " + socket.id));
+                    console.error(`[${new Date().toLocaleString()}] Unknown user rejected with socket id ` + socket.id)
+                next(new Error(`[${new Date().toLocaleString()}] Unknown user rejected with socket id ` + socket.id));
             }
         }).on('connection', socket => {
             socket.on("disconnect", (reason) => {
                 this._redis.hdel('users', socket.id)
                 this._redis.hdel('sockets', socket.id)
                 if (this.options.devMode)
-                    console.log(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
-
+                    console.log(`[${new Date().toLocaleString()}] user disconnected: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
             });
             if (this.options.devMode)
-                console.log(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
+                console.log(`[${new Date().toLocaleString()}] user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
             this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
             this._redis.hset('sockets', socket.user.id, socket.id)
             this.onSubscribe(socket);
@@ -296,7 +295,7 @@ export class EchoServer {
         socket.on('unsubscribe', data => {
             this.channel.leave(socket, data.channel, 'unsubscribed');
             if (this.options.devMode)
-                console.log(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
+                console.log(`[${new Date().toLocaleString()}] user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
         });
     }
 
@@ -311,7 +310,7 @@ export class EchoServer {
                 }
             });
             if (this.options.devMode)
-                console.log(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
+                console.log(`[${new Date().toLocaleString()}] user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
         });
     }
 
