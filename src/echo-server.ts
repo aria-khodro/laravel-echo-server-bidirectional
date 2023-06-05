@@ -272,6 +272,8 @@ export class EchoServer {
             this.onPublish(socket);
             this.onHandleCoords(socket);
             this.onHandleTransportStatus(socket);
+            this.onSetRoom(socket);
+            this.onTicketRevoke(socket);
         });
     }
 
@@ -350,6 +352,23 @@ export class EchoServer {
             if (data?.body?.data?.status === 'finished') {
                 this._redis.publish(data?.channel, JSON.stringify(data?.body))
             }
+        })
+    }
+
+    onSetRoom(socket: any): void {
+        socket.on("set-list", data => {
+            data.forEach(room => {
+                socket.join(room); // join room without authentication
+            });
+        })
+    }
+
+    onTicketRevoke(socket: any): void {
+        socket.on("revoke-ticket", message => {
+            if (this.options.devMode)
+                console.log(util.inspect(message, true, null, true))
+            message.body.user = socket.user;
+            this._redis.publish(message?.channel, JSON.stringify(message?.body))
         })
     }
 }
