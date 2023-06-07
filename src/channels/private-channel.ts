@@ -27,7 +27,7 @@ export class PrivateChannel {
         };
 
         if (this.options.devMode) {
-            Log.info(`[${new Date().toISOString()}] - Sending auth request to: ${options.url}\n`);
+            Log.debug(`Sending auth request to: ${options.url}\n`);
         }
 
         return this.serverRequest(socket, options);
@@ -61,7 +61,7 @@ export class PrivateChannel {
         }
 
         if (this.options.devMode) {
-            Log.warning(`[${new Date().toISOString()}] - Preparing authentication request to: ${authHostSelected}`);
+            Log.warning(`Preparing authentication request to: ${authHostSelected}`);
         }
 
         return authHostSelected;
@@ -86,14 +86,14 @@ export class PrivateChannel {
             this.request.post(options, (error, response, body) => {
                 if (error) {
                     if (this.options.devMode) {
-                        Log.error(`[${new Date().toISOString()}] - Error authenticating ${socket.id} for ${options.form.channel_name}`);
+                        Log.error(`Error authenticating ${socket.id} for ${options.form.channel_name}`);
                         Log.error(error);
                     }
 
                     reject({reason: 'Error sending authentication request.', status: 0});
                 } else if (response.statusCode !== 200) {
                     if (this.options.devMode) {
-                        Log.warning(`[${new Date().toISOString()}] - ${socket.id} could not be authenticated to ${options.form.channel_name}`);
+                        Log.warning(`${socket.id} could not be authenticated to ${options.form.channel_name}`);
                         const error = JSON.parse(response.body);
                         Log.error('message: ' + error.message);
                         Log.error('exception: ' + error.exception);
@@ -105,7 +105,7 @@ export class PrivateChannel {
                     });
                 } else {
                     if (this.options.devMode) {
-                        Log.info(`[${new Date().toISOString()}] - ${socket.id} authenticated for: ${options.form.channel_name}`);
+                        Log.debug(`${socket.id} authenticated for: ${options.form.channel_name}`);
                     }
 
                     try {

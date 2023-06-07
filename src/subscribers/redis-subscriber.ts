@@ -1,6 +1,5 @@
 import {Log} from '../log';
 import {Subscriber} from './subscriber';
-import getCurrentLine from "get-current-line";
 import Redis from "ioredis";
 
 export class RedisSubscriber implements Subscriber {
@@ -40,7 +39,6 @@ export class RedisSubscriber implements Subscriber {
                 try {
                     message = JSON.parse(message);
                     if (this.options.devMode) {
-                        console.log(getCurrentLine())
                         Log.info("Channel: " + channel);
                         Log.info("Event: " + message?.event ?? 'No Event Present');
                         Log.info("Data: " + JSON.stringify(message?.data, null, 4) ?? 'No Data Present');

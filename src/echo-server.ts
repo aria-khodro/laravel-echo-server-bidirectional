@@ -6,9 +6,6 @@ import {Log} from './log';
 import axios from 'axios'
 import {Firebase} from './firebase'
 import Redis from 'ioredis';
-import getCurrentLine from 'get-current-line'
-
-const util = require('util');
 
 const packageFile = require('../package.json');
 const {constants} = require('crypto');
@@ -150,7 +147,7 @@ export class EchoServer {
      * Stop the echo server.
      */
     stop(): Promise<any> {
-        this.logger('Stopping the LARAVEL ECHO SERVER')
+        Log.debug('Stopping the LARAVEL ECHO SERVER')
         let promises = [];
         this.subscribers.forEach(subscriber => {
             promises.push(subscriber.unsubscribe());
@@ -158,7 +155,7 @@ export class EchoServer {
         promises.push(this.server.io.close());
         return Promise.all(promises).then(() => {
             this.subscribers = [];
-            this.logger('The LARAVEL ECHO SERVER server has been stopped.')
+            Log.debug('The LARAVEL ECHO SERVER server has been stopped.')
         });
     }
 
@@ -231,25 +228,25 @@ export class EchoServer {
                         }
                     }).then(r => {
                         if (this.options.devMode) {
-                            this.logger(r.data)
+                            Log.debug(r.data)
                             socket.user = r.data
                         }
                     }).catch(e => {
                         if (this.options.devMode) {
-                            this.logger(e.message)
+                            Log.debug(e.message)
                         }
                     })
                     next();
                 } catch (error) {
                     if (this.options.devMode) {
-                        this.logger(`Token is not valid! Unknown user rejected with socket id ${socket.id}`)
-                        this.logger(error);
+                        Log.debug(`Token is not valid! Unknown user rejected with socket id ${socket.id}`)
+                        Log.debug(error);
                     }
                     next(new Error(error));
                 }
             } else {
                 if (this.options.devMode)
-                    this.logger(`Unknown user rejected with socket id ${socket.id}`)
+                    Log.debug(`Unknown user rejected with socket id ${socket.id}`)
                 next(new Error(`Unknown user rejected with socket id ${socket.id}`));
             }
         }).on('connection', socket => {
@@ -257,10 +254,10 @@ export class EchoServer {
                 this._redis.hdel('users', socket.id)
                 this._redis.hdel('sockets', socket.id)
                 if (this.options.devMode)
-                    this.logger(`user disconnected: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
+                    Log.debug(`user disconnected: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
             });
             if (this.options.devMode)
-                this.logger(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
+                Log.debug(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
             this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
             this._redis.hset('sockets', socket.user.id, socket.id)
             this.onSubscribe(socket);
@@ -280,10 +277,10 @@ export class EchoServer {
     onSubscribe(socket: any): void {
         socket.on('subscribe', data => {
             if (this.options.devMode)
-                this.logger(`${socket.user.name}  subscribing to channel: ${data.channel}`)
+                Log.debug(`${socket.user.name}  subscribing to channel: ${data.channel}`)
             this.channel.join(socket, data);
             if (this.options.devMode)
-                this.logger(`${socket.user.name}  subscribed to channel: ${data.channel}`)
+                Log.debug(`${socket.user.name}  subscribed to channel: ${data.channel}`)
         });
     }
 
@@ -294,7 +291,7 @@ export class EchoServer {
         socket.on('unsubscribe', data => {
             this.channel.leave(socket, data.channel, 'unsubscribed');
             if (this.options.devMode)
-                this.logger(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
+                Log.debug(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
         });
     }
 
@@ -309,7 +306,7 @@ export class EchoServer {
                 }
             });
             if (this.options.devMode)
-                this.logger(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
+                Log.debug(`user disconnecting: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
         });
     }
 
@@ -319,7 +316,7 @@ export class EchoServer {
     onClientEvent(socket: any): void {
         socket.on('client event', data => {
             if (this.options.devMode)
-                this.logger(`client event: ${data}`)
+                Log.debug(`client event: ${data}`)
             this.channel.clientEvent(socket, data);
         });
     }
@@ -330,7 +327,7 @@ export class EchoServer {
     onPublish(socket: any): void {
         socket.on("transport-list", data => {
             if (this.options.devMode)
-                this.logger(`transport-list: ${data}`);
+                Log.debug(`transport-list: ${data}`);
             this._redis.publish(data?.channel, JSON.stringify(data?.body))
         })
     }
@@ -338,7 +335,7 @@ export class EchoServer {
     onHandleCoords(socket: any): void {
         socket.on("transport-coords", data => {
             if (this.options.devMode)
-                this.logger(data)
+                Log.debug(data)
             socket.to(data?.channel).emit('transport-coords', data?.body?.data)
             this._redis.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
         })
@@ -355,13 +352,9 @@ export class EchoServer {
     onTicketRevoke(socket: any): void {
         socket.on("revoke-ticket", message => {
             if (this.options.devMode)
-                this.logger(message)
+                Log.debug(message)
             message.body.user = socket.user;
             this._redis.publish(message?.channel, JSON.stringify(message?.body))
         })
-    }
-
-    logger(...data: any): void {
-        console.debug(`[${new Date().toLocaleString()}] `, util.inspect(data, true, null, true))
     }
 }

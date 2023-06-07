@@ -1,3 +1,7 @@
+// import util from "util";
+
+const util = require('util');
+
 let colors = require('colors');
 
 colors.setTheme({
@@ -15,6 +19,8 @@ colors.setTheme({
     h2: 'yellow'
 });
 
+const line = '_'.repeat(process.stdout.columns)
+
 export class Log {
     /**
      * Console log heading 1.
@@ -23,7 +29,7 @@ export class Log {
      * @return {void}
      */
     static title(message: any): void {
-        console.log(colors.bold(message));
+        this.logWithTime(colors.bold(message));
     }
 
     /**
@@ -33,7 +39,7 @@ export class Log {
      * @return {void}
      */
     static subtitle(message: any): void {
-        console.log(colors.h2.bold(message));
+        this.logWithTime(colors.h2.bold(message));
     }
 
     /**
@@ -43,7 +49,7 @@ export class Log {
      * @return {void}
      */
     static info(message: any): void {
-        console.log(colors.info(message));
+        this.logWithTime(colors.info(message));
     }
 
     /**
@@ -53,7 +59,7 @@ export class Log {
      * @return {void}
      */
     static success(message: any): void {
-        console.log(colors.green('\u2714 '), message);
+        this.logWithTime(colors.green('\u2714 '), message);
     }
 
     /**
@@ -65,7 +71,7 @@ export class Log {
      * @return {void}
      */
     static error(message: any): void {
-        console.log(colors.error(message));
+        this.logWithTime(colors.error(message));
     }
 
     /**
@@ -75,6 +81,19 @@ export class Log {
      * @return {void}
      */
     static warning(message: any): void {
-        console.log(colors.warn('\u26A0 ' + message));
+        this.logWithTime(colors.warn('\u26A0 ' + message));
+    }
+
+    static debug(message: any): void {
+        this.inspectLog(message);
+    }
+
+    static logWithTime(...message: any): void {
+        console.log(colors.bgWhite.black(`[${new Date().toLocaleString()}] `), ...message)
+    }
+
+    static inspectLog(...message: any): void {
+        console.debug(colors.bgWhite.black(`[${new Date().toLocaleString()}] `), util.inspect(...message, true, null, true))
+        console.log(colors.data(line));
     }
 }

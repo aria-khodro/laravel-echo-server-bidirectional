@@ -83,7 +83,7 @@ export class Channel {
             socket.leave(channel);
 
             if (this.options.devMode) {
-                Log.info(`[${new Date().toISOString()}] - ${socket.id} left channel: ${channel} (${reason})`);
+                Log.debug(`${socket.id} left channel: ${channel} (${reason})`);
             }
         }
     }
@@ -145,7 +145,7 @@ export class Channel {
      */
     onJoin(socket: any, channel: string): void {
         if (this.options.devMode) {
-            Log.info(`[${new Date().toISOString()}] - ${socket.id} joined channel: ${channel}`);
+            Log.debug(`${socket.id} joined channel: ${channel}`);
         }
     }
 
