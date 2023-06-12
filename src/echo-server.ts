@@ -101,7 +101,7 @@ export class EchoServer {
             this.server = new Server(this.options);
             this.server.init().then(io => {
                 this.init(io).then(() => {
-                    Log.info('\nServer ready!\n');
+                    Log.info('Server ready!\n');
                     resolve(this);
                 }, error => Log.error(error));
             }, error => Log.error(error));
@@ -266,8 +266,6 @@ export class EchoServer {
             this.onClientEvent(socket);
             this.onPublish(socket);
             this.onHandleCoords(socket);
-            this.onHandleTransportStatus(socket);
-            this.onTicketRevoke(socket);
         });
     }
 
@@ -275,12 +273,12 @@ export class EchoServer {
      * On subscribe to a channel.
      */
     onSubscribe(socket: any): void {
-        socket.on('subscribe', data => {
+        socket.on('subscribe', message => {
             if (this.options.devMode)
-                Log.debug(`${socket.user.name}  subscribing to channel: ${data.channel}`)
-            this.channel.join(socket, data);
+                Log.debug(`${socket.user.name}  subscribing to channel: ${message.channel}`)
+            this.channel.join(socket, message);
             if (this.options.devMode)
-                Log.debug(`${socket.user.name}  subscribed to channel: ${data.channel}`)
+                Log.debug(`${socket.user.name}  subscribed to channel: ${message.channel}`)
         });
     }
 
@@ -288,8 +286,8 @@ export class EchoServer {
      * On unsubscribe from a channel.
      */
     onUnsubscribe(socket: any): void {
-        socket.on('unsubscribe', data => {
-            this.channel.leave(socket, data.channel, 'unsubscribed');
+        socket.on('unsubscribe', message => {
+            this.channel.leave(socket, message.channel, 'unsubscribed');
             if (this.options.devMode)
                 Log.debug(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
         });
@@ -314,43 +312,26 @@ export class EchoServer {
      * On client events.
      */
     onClientEvent(socket: any): void {
-        socket.on('client event', data => {
+        socket.on('client-event', message => {
             if (this.options.devMode)
-                Log.debug(`client event: ${data}`)
-            this.channel.clientEvent(socket, data);
+                Log.debug('client event: ', message)
+            this.channel.clientEvent(socket, message);
         });
     }
 
-    /**
-     * On publish to a channel
-     */
-    onPublish(socket: any): void {
-        socket.on("transport-list", data => {
-            if (this.options.devMode)
-                Log.debug(`transport-list: ${data}`);
-            this._redis.publish(data?.channel, JSON.stringify(data?.body))
-        })
-    }
-
     onHandleCoords(socket: any): void {
-        socket.on("transport-coords", data => {
+        socket.on("transport-coords", message => {
             if (this.options.devMode)
-                Log.debug(data)
-            socket.to(data?.channel).emit('transport-coords', data?.body?.data)
-            this._redis.rpush('coords:' + data?.body?.data?.transport_id, JSON.stringify(data?.body?.data?.coords))
+                Log.debug('transport-coords: ', message)
+            socket.to(message?.channel)
+                .to("private-admin-transport")
+                .emit('transport-coords', message?.body?.data)
+            this._redis.rpush('coords:' + message?.body?.data?.transport_id, JSON.stringify(message?.body?.data?.coords))
         })
     }
 
-    onHandleTransportStatus(socket: any): void {
-        socket.on("transport-status", data => {
-            if (data?.body?.data?.status === 'finished') {
-                this._redis.publish(data?.channel, JSON.stringify(data?.body))
-            }
-        })
-    }
-
-    onTicketRevoke(socket: any): void {
-        socket.on("revoke-ticket", message => {
+    onPublish(socket: any): void {
+        socket.on("core-event", message => {
             if (this.options.devMode)
                 Log.debug(message)
             message.body.user = socket.user;
