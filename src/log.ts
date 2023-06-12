@@ -84,8 +84,8 @@ export class Log {
         this.logWithTime(colors.warn('\u26A0 ' + message));
     }
 
-    static debug(message: any): void {
-        this.inspectLog(message);
+    static debug(...message: any): void {
+        this.inspectLog(...message);
     }
 
     static logWithTime(...message: any): void {
@@ -93,7 +93,10 @@ export class Log {
     }
 
     static inspectLog(...message: any): void {
-        console.debug(colors.bgWhite.black(`[${new Date().toLocaleString()}] `), util.inspect(...message, true, null, true))
+        message.forEach(item => console.debug(
+            colors.bgWhite.black(`[${new Date().toLocaleString()}] `),
+            util.inspect(item, true, null, true))
+        )
         console.log(colors.data(line));
     }
 }
