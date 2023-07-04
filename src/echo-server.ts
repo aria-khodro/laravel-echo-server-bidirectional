@@ -20,7 +20,7 @@ export class EchoServer {
     public defaultOptions: any = {
         authHost: 'http://localhost',
         authEndpoint: '/broadcasting/auth',
-        userEndpoint: '/api/user/me',
+        userEndpoint: '/api/v1/user/me',
         clients: [],
         database: 'redis',
         databaseConfig: {
@@ -229,14 +229,15 @@ export class EchoServer {
                     }).then(r => {
                         if (this.options.devMode) {
                             Log.debug(r.data)
-                            socket.user = r.data
                         }
+                        socket.user = r.data
+                        next();
                     }).catch(e => {
                         if (this.options.devMode) {
                             Log.debug(e.message)
                         }
+                        next(new Error(e));
                     })
-                    next();
                 } catch (error) {
                     if (this.options.devMode) {
                         Log.debug(`Token is not valid! Unknown user rejected with socket id ${socket.id}`)
