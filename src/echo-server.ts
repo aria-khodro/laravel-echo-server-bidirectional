@@ -325,7 +325,7 @@ export class EchoServer {
             if (this.options.devMode)
                 Log.debug('transport-coords: ', message)
             socket.to(message?.channel).emit('transport-coords', message?.body?.data)
-            this._redis.rpush('coords:' + message?.body?.data?.transport_id, JSON.stringify(message?.body?.data?.coords))
+            // this._redis.rpush('coords:' + message?.body?.data?.transport_id, JSON.stringify(message?.body?.data?.coords))
         })
     }
 
