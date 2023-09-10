@@ -6,10 +6,16 @@ import {Log} from './log';
 import axios from 'axios'
 import {Firebase} from './firebase'
 import Redis from 'ioredis';
+import {debug} from "util";
+import {timeout} from "ioredis/built/utils";
 
 const packageFile = require('../package.json');
 const {constants} = require('crypto');
+let coordsArray = [];
 
+// const redis = new Redis({
+//     connectTimeout: 1000, // Timeout in milliseconds
+// });
 /**
  * Echo server class.
  */
@@ -82,7 +88,7 @@ export class EchoServer {
      *
      * @type {object}
      */
-    private _redis: any;
+    // private _redis: any;
 
     /**
      * Create a new instance.
@@ -90,27 +96,46 @@ export class EchoServer {
     constructor() {
     }
 
+
+
+
+
     /**
      * Start the Echo Server.
      */
     run(options: any): Promise<any> {
         return new Promise((resolve) => {
             this.options = Object.assign(this.defaultOptions, options);
-            this._redis = new Redis(this.options.databaseConfig.redis);
+            // this._redis = new Redis(this.options.databaseConfig.redis);
             this.startup();
             this.server = new Server(this.options);
             this.server.init().then(io => {
                 this.init(io).then(() => {
+
                     Log.info('Server ready!\n');
+
                     resolve(this);
                 }, error => Log.error(error));
             }, error => Log.error(error));
+
         });
     }
 
     /**
      * Initialize the class
      */
+    // disconnectFromRedis(): void {
+    //     if (this._redis) {
+    //         this._redis.quit((err, result) => {
+    //             if (err) {
+    //                 console.error('خطا در قطع اتصال از Redis:', err);
+    //             } else {
+    //                 console.log('اتصال از Redis قطع شد.');
+    //             }
+    //         });
+    //     }
+    // }
+
     init(io: any): Promise<any> {
         return new Promise((resolve) => {
             this.channel = new Channel(io, this.options);
@@ -126,6 +151,7 @@ export class EchoServer {
 
             this.onConnect();
             this.listen().then((e) => resolve(e), err => Log.error(err));
+            // this.disconnectFromRedis();
         });
     }
 
@@ -141,6 +167,7 @@ export class EchoServer {
         } else {
             Log.info('Starting server...\n')
         }
+        // this.disconnectFromRedis();
     }
 
     /**
@@ -156,6 +183,8 @@ export class EchoServer {
         return Promise.all(promises).then(() => {
             this.subscribers = [];
             Log.debug('The LARAVEL ECHO SERVER server has been stopped.')
+        }).finally(()=>{
+            // this.disconnectFromRedis();
         });
     }
 
@@ -163,7 +192,9 @@ export class EchoServer {
      * Listen for incoming event from subscribers.
      */
     listen(): Promise<any> {
+
         return new Promise((resolve) => {
+
             let subscribePromises = this.subscribers.map(subscriber => {
                 return subscriber.subscribe((channel, message) => {
                     new Firebase(channel, message, this.options).dispatch();
@@ -199,6 +230,17 @@ export class EchoServer {
         socket.broadcast.to(channel)
             .emit(message.event, channel, message.data);
 
+        axios.post('http://aria-khodro.local/api/V1/webhook-endpoint', {
+                    channel: channel,
+                    event: message.event,
+                    data: message.data
+                }).then(response => {
+                    console.log(response.data);
+                }).catch(error => {
+                    console.error(error);
+                });
+
+
         return true
     }
 
@@ -208,6 +250,15 @@ export class EchoServer {
     toAll(channel: string, message: any): boolean {
         this.server.io.to(channel)
             .emit(message.event, channel, message.data);
+        axios.post('http://aria-khodro.local/api/V1/webhook-endpoint', {
+            channel: channel,
+            event: message.event,
+            data: message.data
+        }).then(response => {
+            console.log(response.data);
+        }).catch(error => {
+            console.error(error);
+        });
 
         return true
     }
@@ -220,6 +271,7 @@ export class EchoServer {
             const bearer = socket?.handshake?.auth?.headers?.Authorization ?? socket?.handshake?.headers.authorization
             if (!!bearer) {
                 try {
+                    console.log(1);
                     await axios({
                         method: 'get',
                         url: this.options.authHost + this.options.userEndpoint,
@@ -228,6 +280,7 @@ export class EchoServer {
                         }
                     }).then(r => {
                         if (this.options.devMode) {
+
                             Log.debug(r.data)
                         }
                         socket.user = r.data
@@ -252,15 +305,15 @@ export class EchoServer {
             }
         }).on('connection', socket => {
             socket.on("disconnect", (reason) => {
-                this._redis.hdel('users', socket.id)
-                this._redis.hdel('sockets', socket.id)
+                // this._redis.hdel('users', socket.id)
+                // this._redis.hdel('sockets', socket.id)
                 if (this.options.devMode)
                     Log.debug(`user disconnected: ${socket?.user?.name} with socket id : ${socket.id} and reason : ${reason}`)
             });
             if (this.options.devMode)
                 Log.debug(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
-            this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
-            this._redis.hset('sockets', socket.user.id, socket.id)
+            // this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
+            // this._redis.hset('sockets', socket.user.id, socket.id)
             this.onSubscribe(socket);
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
@@ -274,6 +327,7 @@ export class EchoServer {
      * On subscribe to a channel.
      */
     onSubscribe(socket: any): void {
+        Log.debug(1234556678888888888888888888888888888888)
         socket.on('subscribe', message => {
             if (this.options.devMode)
                 Log.debug(`${socket.user.name}  subscribing to channel: ${message.channel}`)
@@ -322,11 +376,38 @@ export class EchoServer {
 
     onHandleCoords(socket: any): void {
         socket.on("transport-coords", message => {
-            if (this.options.devMode)
-                Log.debug('transport-coords: ', message)
-            socket.to(message?.channel).emit('transport-coords', message?.body?.data)
-            // this._redis.rpush('coords:' + message?.body?.data?.transport_id, JSON.stringify(message?.body?.data?.coords))
-        })
+            if (message?.body?.data) {
+                coordsArray.push(message.body.data);
+
+                if (this.options.devMode)
+                    Log.debug('transport-coords: ', message);
+
+                socket.to(message?.channel).emit('transport-coords', message.body.data);
+
+                // console.log(123456789)
+                if (this.options.devMode)
+                    Log.debug('transport-coords: ', message)
+                socket.to(message?.channel).emit('transport-coords', message?.body?.data)
+                //  cordis.push(message.body);
+                // console.log(cordis);
+                // this._redis.rpush('coords:' + message?.body?.data?.transport_id, JSON.stringify(message?.body?.data?.coords))
+            } })
+        setInterval(() => {
+
+            if (coordsArray.length) {
+
+                axios.post('http://aria-khodro.local/api/v1/webhook-endpoint', {
+                    coords: coordsArray
+                }).then(response => {
+                    console.log(coordsArray.length);
+                    console.log('Bulk response:', response.data);
+                    coordsArray = []; // پاک کردن آرایه بعد از ارسال
+                }).catch(error => {
+                    console.log("50 : ", error)
+                    console.error(error);
+                });
+            }
+        }, 60000);
     }
 
     onPublish(socket: any): void {
@@ -334,7 +415,57 @@ export class EchoServer {
             if (this.options.devMode)
                 Log.debug(message)
             message.body.user = socket.user;
-            this._redis.publish(message?.channel, JSON.stringify(message?.body))
+            // this._redis.publish(message?.channel, JSON.stringify(message?.body))
         })
     }
+    // async broadcast(channel, message) {
+    //     if (message.socket && this.find(message.socket)) {
+    //         return this.toOthers(this.find(message.socket), channel, message);
+    //     } else {
+    //         return this.toAll(channel, message);
+    //     }
+    // }
+    //
+    // /**
+    //  * Broadcast to others on channel.
+    //  */
+    // toOthers(socket, channel, message) {
+    //     socket.broadcast.to(channel)
+    //         .emit(message.event, channel, message.data);
+    //
+    //     // ارسال اطلاعات به وب‌هوک با استفاده از Axios:
+    //     axios.post('آدرس وب‌هوک', {
+    //         channel: channel,
+    //         event: message.event,
+    //         data: message.data
+    //     }).then(response => {
+    //         // پردازش پاسخ وب‌هوک اگر نیاز دارید
+    //         console.log(response.data);
+    //     }).catch(error => {
+    //         // پردازش خطا اگر نیاز دارید
+    //         console.error(error);
+    //     });
+    // }
+    //
+    // /**
+    //  * Broadcast to all members on channel.
+    //  */
+    // toAll(channel, message) {
+    //     this.server.io.to(channel)
+    //         .emit(message.event, channel, message.data);
+    //
+    //     // ارسال اطلاعات به وب‌هوک با استفاده از Axios:
+    //     axios.post('آدرس وب‌هوک', {
+    //         channel: channel,
+    //         event: message.event,
+    //         data: message.data
+    //     }).then(response => {
+    //         // پردازش پاسخ وب‌هوک اگر نیاز دارید
+    //         console.log(response.data);
+    //     }).catch(error => {
+    //         // پردازش خطا اگر نیاز دارید
+    //         console.error(error);
+    //     });
+    // }
+
 }
