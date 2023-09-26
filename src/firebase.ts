@@ -24,7 +24,8 @@ export class Firebase {
     private _redis: any;
 
     constructor(channel: string, message: any, options: any) {
-        this._redis = new Redis(options.databaseConfig.redis);
+        // new Redis(options.databaseConfig.redis)
+        this._redis = null;
         this.channel = channel;
         this.message = message;
     }
