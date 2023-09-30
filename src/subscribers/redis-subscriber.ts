@@ -10,6 +10,9 @@ export class RedisSubscriber implements Subscriber {
      */
     private _redis: any;
 
+
+    // تعریف متغیر نماینده نمونه یکتا
+    private static instance: RedisSubscriber;
     /**
      *
      * KeyPrefix for used in the redis Connection
@@ -25,8 +28,13 @@ export class RedisSubscriber implements Subscriber {
      */
     constructor(private options) {
         this._keyPrefix = options.databaseConfig.redis.keyPrefix || '';
+        if (!this._redis){
+
         this._redis = new Redis(options.databaseConfig.redis);
+        }
     }
+
+
 
     /**
      * Subscribe to events to broadcast.
@@ -35,6 +43,7 @@ export class RedisSubscriber implements Subscriber {
      */
     subscribe(callback): Promise<any> {
         return new Promise((resolve, reject) => {
+            console.log(123456789)
             this._redis.on('pmessage', (subscribed, channel, message) => {
                 try {
                     message = JSON.parse(message);
@@ -71,6 +80,7 @@ export class RedisSubscriber implements Subscriber {
     unsubscribe(): Promise<any> {
         return new Promise((resolve, reject) => {
             try {
+
                 this._redis.disconnect();
                 resolve(this);
             } catch (e) {

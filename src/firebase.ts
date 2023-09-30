@@ -1,3 +1,5 @@
+import RedisClientManager from "./database/RedisClientManager";
+
 const _ = require("lodash");
 import Redis from "ioredis";
 import * as admin from 'firebase-admin';
@@ -24,10 +26,13 @@ export class Firebase {
     private _redis: any;
 
     constructor(channel: string, message: any, options: any) {
-        // new Redis(options.databaseConfig.redis)
-        this._redis = null;
+         // new Redis(options.databaseConfig.redis)
+        // this._redis = null;
+
+        this._redis = RedisClientManager.getClient(options.databaseConfig.redis);
         this.channel = channel;
         this.message = message;
+        this.options = options;
     }
 
     public channel: string = null;
@@ -198,6 +203,8 @@ export class Firebase {
                 console.log(firebaseResponse)
             }
         }
+
+
     }
 
 }

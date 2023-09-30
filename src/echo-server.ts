@@ -4,14 +4,18 @@ import {Server} from './server';
 import {HttpApi} from './api';
 import {Log} from './log';
 import axios from 'axios'
-import {Firebase} from './firebase'
+import {Firebase} from "./firebase";
+
+
 import Redis from 'ioredis';
 import {debug} from "util";
-import {timeout} from "ioredis/built/utils";
+import {Socket} from "socket.io";
+// import {timeout} from "ioredis/built/utils";
 
 const packageFile = require('../package.json');
 const {constants} = require('crypto');
 let coordsArray = [];
+
 
 // const redis = new Redis({
 //     connectTimeout: 1000, // Timeout in milliseconds
@@ -20,6 +24,9 @@ let coordsArray = [];
  * Echo server class.
  */
 export class EchoServer {
+    private static instance: EchoServer | null = null;
+
+
     /**
      * Default server options.
      */
@@ -97,7 +104,12 @@ export class EchoServer {
     }
 
 
-
+    public static getInstance(): EchoServer {
+        if (!EchoServer.instance) {
+            EchoServer.instance = new EchoServer();
+        }
+        return EchoServer.instance;
+    }
 
 
     /**
@@ -105,6 +117,7 @@ export class EchoServer {
      */
     run(options: any): Promise<any> {
         return new Promise((resolve) => {
+
             this.options = Object.assign(this.defaultOptions, options);
             // this._redis = new Redis(this.options.databaseConfig.redis);
             this.startup();
@@ -227,18 +240,35 @@ export class EchoServer {
      * Broadcast to others on channel.
      */
     toOthers(socket: any, channel: string, message: any): boolean {
-        socket.broadcast.to(channel)
-            .emit(message.event, channel, message.data);
+        socket.join(channel);
+        console.log("channel is:", channel);
+        socket.emit('authenticate.' + socket.user.id, {
+            channel: channel
+        })
+        Log.debug(`${socket.id} joined channel: ${channel}`);
 
-        axios.post('http://aria-khodro.local/api/V1/webhook-endpoint', {
-                    channel: channel,
-                    event: message.event,
-                    data: message.data
-                }).then(response => {
-                    console.log(response.data);
-                }).catch(error => {
-                    console.error(error);
-                });
+
+
+        socket.on("ticket-list", (data) => {
+            console.log("ticket-list emitted to server", data);
+        } )
+
+        setTimeout(() => {
+            socket.emit('ticket-list' ,"yyyyyyyyyy");
+            console.log("ticket-list emitted");
+        }, 3000)
+
+        // this.channel.onJoin(socket,channel);
+        // axios.post('http://aria-khodro.local/api/V1/webhook-endpoints', {
+        //             channel: channel,
+        //             event: message.event,
+        //             data: message.data
+        //         }).then(response => {
+        //     // socket.emit('ticket-list', response.data);
+        //             console.log(response.data);
+        //         }).catch(error => {
+        //             console.log(error);
+        //         });
 
 
         return true
@@ -314,6 +344,7 @@ export class EchoServer {
                 Log.debug(`user connected: ${socket?.user?.name} with socket id : ${socket.id}`)
             // this._redis.hset('users', socket.user.id, JSON.stringify(socket.user))
             // this._redis.hset('sockets', socket.user.id, socket.id)
+            // this.toOthers(socket);
             this.onSubscribe(socket);
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
@@ -327,13 +358,16 @@ export class EchoServer {
      * On subscribe to a channel.
      */
     onSubscribe(socket: any): void {
-        Log.debug(1234556678888888888888888888888888888888)
+
+        // Log.debug(1234556678888888888888888888888888888888)
         socket.on('subscribe', message => {
-            if (this.options.devMode)
-                Log.debug(`${socket.user.name}  subscribing to channel: ${message.channel}`)
+            // this.toOthers(socket,message.channel,message)
+            // if (this.options.devMode)
+            //     Log.debug(`${socket.user.name}  subscribing to channel: ${message.channel}`)
             this.channel.join(socket, message);
-            if (this.options.devMode)
-                Log.debug(`${socket.user.name}  subscribed to channel: ${message.channel}`)
+            // if (this.options.devMode)
+            //     Log.debug(`${socket.user.name}  subscribed to channel: ${message.channel}`)
+
         });
     }
 
@@ -342,7 +376,15 @@ export class EchoServer {
      */
     onUnsubscribe(socket: any): void {
         socket.on('unsubscribe', message => {
+
             this.channel.leave(socket, message.channel, 'unsubscribed');
+            // socket.client.disconnected();
+            socket.removeAllListeners(message);
+            // if (socket.client.isClosed()) {
+            //     Log.debug('The Redis client is closed');
+            // } else {
+            //     Log.error('The Redis client is not closed');
+            // }
             if (this.options.devMode)
                 Log.debug(`user unsubscribed: ${socket?.user?.name} with socket id : ${socket.id}`)
         });
@@ -379,10 +421,10 @@ export class EchoServer {
             if (message?.body?.data) {
                 coordsArray.push(message.body.data);
 
-                if (this.options.devMode)
-                    Log.debug('transport-coords: ', message);
-
-                socket.to(message?.channel).emit('transport-coords', message.body.data);
+                // if (this.options.devMode)
+                //     Log.debug('transport-coords: ', message);
+                //
+                // socket.to(message?.channel).emit('transport-coords', message.body.data);
 
                 // console.log(123456789)
                 if (this.options.devMode)
@@ -418,54 +460,4 @@ export class EchoServer {
             // this._redis.publish(message?.channel, JSON.stringify(message?.body))
         })
     }
-    // async broadcast(channel, message) {
-    //     if (message.socket && this.find(message.socket)) {
-    //         return this.toOthers(this.find(message.socket), channel, message);
-    //     } else {
-    //         return this.toAll(channel, message);
-    //     }
-    // }
-    //
-    // /**
-    //  * Broadcast to others on channel.
-    //  */
-    // toOthers(socket, channel, message) {
-    //     socket.broadcast.to(channel)
-    //         .emit(message.event, channel, message.data);
-    //
-    //     // ارسال اطلاعات به وب‌هوک با استفاده از Axios:
-    //     axios.post('آدرس وب‌هوک', {
-    //         channel: channel,
-    //         event: message.event,
-    //         data: message.data
-    //     }).then(response => {
-    //         // پردازش پاسخ وب‌هوک اگر نیاز دارید
-    //         console.log(response.data);
-    //     }).catch(error => {
-    //         // پردازش خطا اگر نیاز دارید
-    //         console.error(error);
-    //     });
-    // }
-    //
-    // /**
-    //  * Broadcast to all members on channel.
-    //  */
-    // toAll(channel, message) {
-    //     this.server.io.to(channel)
-    //         .emit(message.event, channel, message.data);
-    //
-    //     // ارسال اطلاعات به وب‌هوک با استفاده از Axios:
-    //     axios.post('آدرس وب‌هوک', {
-    //         channel: channel,
-    //         event: message.event,
-    //         data: message.data
-    //     }).then(response => {
-    //         // پردازش پاسخ وب‌هوک اگر نیاز دارید
-    //         console.log(response.data);
-    //     }).catch(error => {
-    //         // پردازش خطا اگر نیاز دارید
-    //         console.error(error);
-    //     });
-    // }
-
 }

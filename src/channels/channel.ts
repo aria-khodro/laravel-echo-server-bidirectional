@@ -39,6 +39,7 @@ export class Channel {
      * Join a channel.
      */
     join(socket, data): void {
+
         if (data.channel) {
             if (this.isPrivate(data.channel)) {
                 this.joinPrivate(socket, data);
@@ -107,6 +108,7 @@ export class Channel {
      */
     joinPrivate(socket: any, data: any): void {
         this.private.authenticate(socket, data).then(res => {
+
             socket.join(data.channel);
             socket.emit('authenticate.' + socket.user.id, {
                 channel: data.channel
@@ -144,6 +146,7 @@ export class Channel {
      * On join a channel log success.
      */
     onJoin(socket: any, channel: string): void {
+        console.log(1);
         if (this.options.devMode) {
             Log.debug(`${socket.id} joined channel: ${channel}`);
         }
